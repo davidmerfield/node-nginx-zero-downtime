@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # You should specify twice as many ports as you
 # have CPUs on your machine. The script will 
 # start processes equal to half the number of ports
