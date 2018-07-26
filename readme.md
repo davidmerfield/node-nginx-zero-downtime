@@ -1,8 +1,23 @@
+###### Goals
+
+Essentially we are trying to deploy changes to a node.js application running behind NGINX without dropping any requests. Here are some subgoals:
+
+1. Do not adjust anything with NGINX. This means we don't have to mess around with ```sudo```
+2. 
+
+
 ###### Set up
+
+After cloning the repository, make sure the script is executable:
 
 ```bash
 chmod +x deploy.sh
-./deploy.sh
+```
+
+Then call the deployment script, passing all the ports you have set aside to run node.js processes on. Make sure these match the ports specified in upstream servers for nginx.conf.
+
+```
+./deploy.sh 8890 8891 8892 8893
 ```
 
 ###### How it works
@@ -22,9 +37,6 @@ chmod +x deploy.sh
 
 
 
-Goals for this:
-- Deploy new code safely as unpriviledged user
-- Do not adjust anything with NGINX
 
 To do:
 - check for long requests (e.g. file downloads, streams)
