@@ -13,6 +13,16 @@ EXISTING_PIDS=()
 # which ports are not in use and available for this deployment
 for port in "${PORTS[@]}"
 do
+  # Sourced this command to check a particular port here:
+  # https://unix.stackexchange.com/questions/149419/how-to-check-whether-a-particular-port-is-open-on-a-machine-from-a-shell-script
+  # lsof = list open files
+  # -i selects the listing of files any  of  whose  Internet  address
+  # -P inhibits the conversion of port numbers to port names for net-
+  # work files.  Inhibiting the conversion may  make  lsof  run  a
+  # little faster.  It is also useful when port name lookup is not
+  # working properly.
+  # -sTCP:LISTEN will list only network files with TCP state LISTEN
+  # -t specifies terse output
   pid=$(lsof -Pi :$port -sTCP:LISTEN -t)
   if [ $pid ]; then
     EXISTING_PIDS+=($pid)
