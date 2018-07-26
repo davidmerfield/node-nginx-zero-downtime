@@ -39,7 +39,7 @@ fi
 
 # run the new code
 export APP_PORT=$NEW_DEPLOYMENT_PORT 
-node data/$NEW_DEPLOYMENT_ID/app &
+node data/$NEW_DEPLOYMENT_ID/app >> data/log &
 
 echo $! > data/active.pid
 echo $NEW_DEPLOYMENT_PORT > data/active.port
