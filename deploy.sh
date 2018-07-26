@@ -77,8 +77,8 @@ fi
 # nginx.conf which specifies how long NGINX will cache
 # the information that a given upstream server is 
 # unavailable. I should do more research.
-echo "Waiting for full length of timeout"
-sleep 5s
+echo "Waiting for NGINX's fail_timeout to expire for previously unused ports now running our new deployment"
+sleep 6s
 echo "Waiting is over!"
 
 # kill old EXISTING_PIDS
@@ -86,7 +86,14 @@ for activepid in "${EXISTING_PIDS[@]}"
 do 
   echo "Killing old process with pid $activepid"
   kill $activepid
+  # Wait for the process to close
+  # This script is sourced from here:
+  # https://stackoverflow.com/questions/1058047/wait-for-any-process-to-finish
+  lsof -p $activepid +r 1 &>/dev/null
+  echo "Killed old process with pid $activepid"
 done
+
+echo "Deploy completed successfully!"
 
 # remove old code?
 exit 0
