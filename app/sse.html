@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+</head>
+<body>
+  <script>
+
+    var MAX_RETRIES = 10;
+
+    (function attemptToConnect (retries) {
+
+    var source = new EventSource('/stream');
+    console.log('new source!');
+    source.onmessage = function(e) {
+      console.log('INVOKED');
+      document.body.innerHTML += e.data + '<br>';
+    };
+    source.onerror = function(e) {
+      console.log('ERROR', e);
+      document.body.innerHTML += "ERROR" + '<br>';
+      attemptToConnect(--retries);
+    };
+
+    })(MAX_RETRIES);
+
+  </script>
+</body>
+</html>
