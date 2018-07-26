@@ -1,66 +1,68 @@
-set -e
+PORTS=(8890 8891 8892 8893)
+CONCURRENT_PROCESSES=$((${#PORTS[@]}/2))
 
 NEW_DEPLOYMENT_ID=$(date +%s)
 
-FIRST_PORT=8899
-SECOND_PORT=8890
+FREEPORTS=()
+CLOSEDPORTS=()
+PIDS=()
 
-if [ -e data/active.deployment ]
-then 
-  echo "There is an active deployment"
-  OLD_DEPLOYMENT_ID=$(cat data/active.deployment)
-  OLD_DEPLOYMENT_PID=$(cat data/active.pid)
-  OLD_DEPLOYMENT_PORT=$(cat data/active.port)
-else 
-  echo "There is no active deployment"
-fi
+for port in "${PORTS[@]}"
+do
+  pid=$(lsof -Pi :$port -sTCP:LISTEN -t)
+  if [ $pid ]; then
+    PIDS+=($pid)
+    CLOSEDPORTS+=($port)
+  else 
+    FREEPORTS+=($port)
+  fi
+done
 
-
-# copy code to new directory
-mkdir -p data/$NEW_DEPLOYMENT_ID/app
-cp -R app data/$NEW_DEPLOYMENT_ID/
-
-
-
-# check if there is an existing deployment running
-if [ $OLD_DEPLOYMENT_ID ]; then
-  mv data/active.pid data/old.pid
-  mv data/active.port data/old.port
-  mv data/active.deployment data/old.deployment
-else
-  echo "No deployment running"
-fi
-
-if [ "$OLD_DEPLOYMENT_PORT" == "$FIRST_PORT" ]; then
-  NEW_DEPLOYMENT_PORT=$SECOND_PORT
-else
-  NEW_DEPLOYMENT_PORT=$FIRST_PORT
+if [ ${#FREEPORTS[@]} -eq 0 ]; then
+  echo "Error: No free ports to bind new processes to"
+  exit 1
 fi
 
 # run the new code
-export APP_PORT=$NEW_DEPLOYMENT_PORT 
-node data/$NEW_DEPLOYMENT_ID/app >> data/log &
+for freeport in "${FREEPORTS[@]}"
+do
+  
+  if (( active_processes >= CONCURRENT_PROCESSES )); then
+    echo "max concurrent reached!"
+    continue
+  fi
 
-echo $! > data/active.pid
-echo $NEW_DEPLOYMENT_PORT > data/active.port
-echo $NEW_DEPLOYMENT_ID > data/active.deployment
+  # copy code to new directory
+  depdir=$NEW_DEPLOYMENT_ID-$freeport
+  mkdir -p data/$depdir/app
+  cp -R app data/$depdir/
+  
+  # run new app
+  export APP_PORT=$freeport
+  node data/$depdir/app >> data/log &
+  active_processes=$((active_processes+1))
+  echo "Started new process on port $freeport with pid $!"
+
+done
+
+
+if [ ${#PIDS[@]} -eq 0 ]; then
+  echo "Warning: no existing processes to kill"
+  exit 0
+fi
 
 # verify it works
-# We must wait longer than the fail_timeout directive
-# in the upstream block for the proxy in nginx.conf
-echo "Waiting 10 seconds..."
-sleep 10
-echo "Done!"
-curl localhost:$NEW_DEPLOYMENT_PORT
+echo "Waiting for full length of timeout"
+sleep 5s
+echo "Waiting is over!"
 
-# send kill signal to old code processes
+# kill old pids
+for activepid in "${PIDS[@]}"
+do 
+  echo "Killing old process with pid $activepid"
+  kill $activepid
+done
+
 # remove old code?
-if [ $OLD_DEPLOYMENT_ID ]; then
-  echo "Killing $OLD_DEPLOYMENT_PID"
-  rm -rf data/$OLD_DEPLOYMENT_ID
-  kill $OLD_DEPLOYMENT_PID
-else 
-  echo "Not killing $OLD_DEPLOYMENT_ID"  
-fi
 
 exit 0
