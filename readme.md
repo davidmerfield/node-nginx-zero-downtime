@@ -1,12 +1,16 @@
-###### Goals
+#### Goals
 
-Essentially we are trying to deploy changes to a node.js application running behind NGINX without dropping any requests. Here are some subgoals:
+We want to deploy changes to a node.js application running behind NGINX without dropping any requests. 
 
-1. Do not adjust anything with NGINX. This means we don't have to mess around with ```sudo```
-2. 
+Here are some additional requirements:
 
+1. Deployment should not requireme any adjustments to NGINX. This means we don't have to mess around with ```sudo```
 
-###### Set up
+2. Deployment should verify new code starts and runs. This means we don't kill old processes before 
+
+3. Long connections, like those for [Server-sent events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events), should be killed and reset on the client.
+
+#### Set up
 
 After cloning the repository, make sure the script is executable:
 
@@ -20,7 +24,7 @@ Then call the deployment script, passing all the ports you have set aside to run
 ./deploy.sh 8890 8891 8892 8893
 ```
 
-###### How it works
+#### How it works
 
 1. Start new code
 
