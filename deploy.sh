@@ -1,68 +1,82 @@
+# You should specify twice as many ports as you
+# have CPUs on your machine. The script will 
+# start processes equal to half the number of ports
+# Make sure your NGINX configuration has these ports.
 PORTS=(8890 8891 8892 8893)
-CONCURRENT_PROCESSES=$((${#PORTS[@]}/2))
 
-NEW_DEPLOYMENT_ID=$(date +%s)
+UNUSED_PORTS=()
+USED_PORTS=()
+EXISTING_PIDS=()
 
-FREEPORTS=()
-CLOSEDPORTS=()
-PIDS=()
-
+# First we determine which of the ports are in use
+# and if so, which processes are bound to them and
+# which ports are not in use and available for this deployment
 for port in "${PORTS[@]}"
 do
   pid=$(lsof -Pi :$port -sTCP:LISTEN -t)
   if [ $pid ]; then
-    PIDS+=($pid)
-    CLOSEDPORTS+=($port)
+    EXISTING_PIDS+=($pid)
+    USED_PORTS+=($port)
   else 
-    FREEPORTS+=($port)
+    UNUSED_PORTS+=($port)
   fi
 done
 
-if [ ${#FREEPORTS[@]} -eq 0 ]; then
+# If there are no free ports available then we must
+# exit the script now and show an error message.
+if [ ${#UNUSED_PORTS[@]} -eq 0 ]; then
   echo "Error: No free ports to bind new processes to"
   exit 1
 fi
 
-# run the new code
-for freeport in "${FREEPORTS[@]}"
+# Run the new processes on the available ports
+for port in "${UNUSED_PORTS[@]}"
 do
   
-  if (( active_processes >= CONCURRENT_PROCESSES )); then
-    echo "max concurrent reached!"
-    continue
-  fi
-
-  # copy code to new directory
-  depdir=$NEW_DEPLOYMENT_ID-$freeport
+  # This is where the application should probably
+  # decide how to set itself up when passed a 
+  # working directory. For now we'll write it here
+  depdir=$(date +%s)-$port
   mkdir -p data/$depdir/app
   cp -R app data/$depdir/
-  
-  # run new app
-  export APP_PORT=$freeport
+  export APP_PORT=$port
   node data/$depdir/app >> data/log &
-  active_processes=$((active_processes+1))
-  echo "Started new process on port $freeport with pid $!"
+  
+  echo "Started new process on port $port with pid $!"
+  NEW_PROCESS_COUNT=$((NEW_PROCESS_COUNT+1))
+
+  # We keep track of the number of new processes to 
+  # ensure that we don't start more than half the number 
+  # of total ports. This ensures we have free ports for our
+  # next deployment.
+  if (( NEW_PROCESS_COUNT >= ${#PORTS[@]}/2 )); then
+    break
+  fi
 
 done
 
-
-if [ ${#PIDS[@]} -eq 0 ]; then
+# There will be no existing processes the first
+# time the deploy script is run.
+if [ ${#EXISTING_PIDS[@]} -eq 0 ]; then
   echo "Warning: no existing processes to kill"
   exit 0
 fi
 
-# verify it works
+# I'm not sure what timeout this should be, but for
+# now it is as long as the fail_timeout directive in
+# nginx.conf which specifies how long NGINX will cache
+# the information that a given upstream server is 
+# unavailable. I should do more research.
 echo "Waiting for full length of timeout"
 sleep 5s
 echo "Waiting is over!"
 
-# kill old pids
-for activepid in "${PIDS[@]}"
+# kill old EXISTING_PIDS
+for activepid in "${EXISTING_PIDS[@]}"
 do 
   echo "Killing old process with pid $activepid"
   kill $activepid
 done
 
 # remove old code?
-
 exit 0
