@@ -4,7 +4,14 @@
 # have CPUs on your machine. The script will 
 # start processes equal to half the number of ports
 # Make sure your NGINX configuration has these ports.
-PORTS=(8890 8891 8892 8893)
+PORTS=( "$@" )
+
+# Check to make sure you have passed enough ports to 
+# run the deployment to this script.
+if [ ${#PORTS[@]} -lt 2 ]; then
+  echo "Please pass at least two ports to this script."
+  exit 1
+fi
 
 UNUSED_PORTS=()
 USED_PORTS=()
@@ -37,7 +44,7 @@ done
 # If there are no free ports available then we must
 # exit the script now and show an error message.
 if [ ${#UNUSED_PORTS[@]} -eq 0 ]; then
-  echo "Error: No free ports to bind new processes to"
+  echo "Error: No free ports to bind new processes to."
   exit 1
 fi
 
