@@ -4,7 +4,7 @@ We want to deploy changes to a node.js application running behind NGINX without 
 
 Here are some additional requirements:
 
-1. Deployment should not requireme any adjustments to NGINX. This means we don't have to mess around with ```sudo```
+1. Deployment of changes to node.js application should not requireme any adjustments to NGINX. This means we don't have to mess around with ```sudo```
 
 2. Deployment should verify new code starts and runs. This means we don't kill old processes before 
 

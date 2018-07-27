@@ -1,0 +1,1 @@
+put your nginx configuration in this directory
